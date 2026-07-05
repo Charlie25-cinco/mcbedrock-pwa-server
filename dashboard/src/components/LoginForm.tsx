@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getSupabase } from '../lib/supabase';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/config';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -37,21 +38,32 @@ export default function LoginForm() {
   }
 
   async function handleSignUp() {
-    if (!supabase) { setError('Supabase not configured.'); return; }
+    if (!email || !password) { setError('Please enter email and password.'); return; }
     setError('');
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    setLoading(false);
+      const data = await res.json();
 
-    if (error) {
-      setError(error.message);
-    } else {
-      setError('Check your email for the confirmation link, then log in.');
+      setLoading(false);
+
+      if (!res.ok) {
+        setError(data.msg || data.error_description || data.error || 'Sign up failed');
+      } else {
+        setError('Check your email for the confirmation link, then log in.');
+      }
+    } catch {
+      setLoading(false);
+      setError('Network error: could not reach Supabase');
     }
   }
 
