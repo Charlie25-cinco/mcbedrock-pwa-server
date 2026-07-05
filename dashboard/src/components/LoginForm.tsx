@@ -1,13 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { getSupabase } from '../lib/supabase';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/config';
 
 export default function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
   const supabase = getSupabase();
 
   useEffect(() => {
@@ -17,53 +13,19 @@ export default function LoginForm() {
     });
   }, []);
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleFacebookSignIn() {
     if (!supabase) { setError('Supabase not configured.'); return; }
-    setError('');
     setLoading(true);
+    setError('');
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: { redirectTo: window.location.origin },
     });
 
     if (error) {
       setError(error.message);
       setLoading(false);
-      return;
-    }
-
-    window.location.href = '/';
-  }
-
-  async function handleSignUp() {
-    if (!email || !password) { setError('Please enter email and password.'); return; }
-    setError('');
-    setLoading(true);
-
-    try {
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      setLoading(false);
-
-      if (!res.ok) {
-        setError(data.msg || data.error_description || data.error || 'Sign up failed');
-      } else {
-        setError('Check your email for the confirmation link, then log in.');
-      }
-    } catch {
-      setLoading(false);
-      setError('Network error: could not reach Supabase');
     }
   }
 
@@ -71,47 +33,25 @@ export default function LoginForm() {
     return (
       <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px', textAlign: 'center' }}>
         <h1>MC Bedrock Dashboard</h1>
-        <p style={{ color: '#d32f2f' }}>Supabase not configured. Set PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY.</p>
+        <p style={{ color: '#d32f2f' }}>Supabase not configured.</p>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px' }}>
-      <h1 style={{ textAlign: 'center', marginBottom: 24 }}>MC Bedrock Dashboard</h1>
-      <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ padding: 10, fontSize: 16 }}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ padding: 10, fontSize: 16 }}
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ padding: '10px 16px', fontSize: 16, cursor: 'pointer' }}
-        >
-          {loading ? 'Loading...' : 'Log In'}
-        </button>
-        <button
-          type="button"
-          onClick={handleSignUp}
-          disabled={loading}
-          style={{ padding: '10px 16px', fontSize: 16, cursor: 'pointer' }}
-        >
-          Sign Up
-        </button>
-      </form>
+    <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px', textAlign: 'center' }}>
+      <h1 style={{ marginBottom: 24 }}>MC Bedrock Dashboard</h1>
+      <button
+        onClick={handleFacebookSignIn}
+        disabled={loading}
+        style={{
+          padding: '12px 32px', fontSize: 16, cursor: 'pointer',
+          background: '#fff', border: '1px solid #ccc', borderRadius: 6,
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+        }}
+      >
+          {loading ? 'Redirecting...' : 'Sign in with Facebook'}
+      </button>
       {error && <p style={{ color: '#d32f2f', marginTop: 16 }}>{error}</p>}
     </div>
   );
